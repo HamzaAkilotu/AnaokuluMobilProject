@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'rea
 
 const tabItems = [
   { label: 'Hakkımızda', route: 'About' },
-  { label: 'İş başvurusu', route: 'JobApplication' },
-  { label: 'Branş derslerimiz', route: 'BranchLessons' },
+  { label: 'İş Başvurusu', route: 'JobApplication' },
+  { label: 'Branş Derslerimiz', route: 'BranchLessons' },
 ];
 
 const AboutScreen = ({ navigation, route }) => (

@@ -1,31 +1,22 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Modal, TouchableOpacity, Dimensions, ImageBackground } from 'react-native';
-
-const images = [
-  require('../Assets/algoritma.jpg'),
-  require('../Assets/AnaSayfa4.jpg'),
-  require('../Assets/Bina1.webp'),
-  require('../Assets/Bina2.webp'),
-  require('../Assets/ingilizce.jpg'),
-  require('../Assets/logo.png'),
-  require('../Assets/matematik.jpg'),
-  require('../Assets/muzik.jpg'),
-  require('../Assets/nisan.jpg'),
-  require('../Assets/Park1.webp'),
-  require('../Assets/Park2.webp'),
-  require('../Assets/rehberlik.jpg'),
-  require('../Assets/servis.jpg'),
-  require('../Assets/Sinif1.webp'),
-  require('../Assets/Sinif2.webp'),
-  require('../Assets/sonbahar.jpg'),
-  require('../Assets/tophavuzu.webp'),
-];
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, Modal, TouchableOpacity, Dimensions, ImageBackground, ActivityIndicator } from 'react-native';
+import { GaleriAPI } from '../api';
 
 const { width, height } = Dimensions.get('window');
 
 const GalleryScreen = () => {
+  const [images, setImages] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    GaleriAPI.getAll()
+      .then(data => setImages(data))
+      .catch(err => setError('Galeri yüklenemedi'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const openModal = (idx) => {
     setSelectedIndex(idx);
@@ -37,19 +28,26 @@ const GalleryScreen = () => {
   const goNext = () => setSelectedIndex((selectedIndex + 1) % images.length);
   const goPrev = () => setSelectedIndex((selectedIndex - 1 + images.length) % images.length);
 
+  if (loading) {
+    return <View style={styles.loading}><ActivityIndicator size="large" color="#790926" /><Text>Yükleniyor...</Text></View>;
+  }
+  if (error) {
+    return <View style={styles.loading}><Text style={{color:'red'}}>{error}</Text></View>;
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Galeri</Text>
       <View style={styles.grid}>
         {images.map((img, idx) => (
-          <TouchableOpacity key={idx} style={styles.imageWrapper} onPress={() => openModal(idx)}>
-            <Image source={img} style={styles.image} />
+          <TouchableOpacity key={img.id || idx} style={styles.imageWrapper} onPress={() => openModal(idx)}>
+            <Image source={{ uri: img.resimUrl }} style={styles.image} />
           </TouchableOpacity>
         ))}
       </View>
       <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalContainer}>
-          <ImageBackground source={images[selectedIndex]} style={styles.blurBg} blurRadius={20}>
+          <ImageBackground source={{ uri: images[selectedIndex]?.resimUrl }} style={styles.blurBg} blurRadius={20}>
             <View style={styles.overlay} />
             <View style={styles.modalContent}>
               <TouchableOpacity style={styles.closeBtn} onPress={closeModal}>
@@ -58,7 +56,7 @@ const GalleryScreen = () => {
               <TouchableOpacity style={styles.arrowLeft} onPress={goPrev}>
                 <Text style={styles.arrowText}>{'<'}</Text>
               </TouchableOpacity>
-              <Image source={images[selectedIndex]} style={styles.modalImage} />
+              <Image source={{ uri: images[selectedIndex]?.resimUrl }} style={styles.modalImage} />
               <TouchableOpacity style={styles.arrowRight} onPress={goNext}>
                 <Text style={styles.arrowText}>{'>'}</Text>
               </TouchableOpacity>
@@ -162,6 +160,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 28,
     fontWeight: 'bold',
+  },
+  loading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

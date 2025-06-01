@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { DuyuruAPI } from '../api';
 
 const HomePage = ({ navigation }) => {
   const [selectedTab, setSelectedTab] = useState(0);
@@ -25,6 +26,9 @@ const HomePage = ({ navigation }) => {
   const pan = useRef(new Animated.ValueXY()).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const swipeThreshold = 50;
+  const [announcements, setAnnouncements] = useState([]);
+  const [annLoading, setAnnLoading] = useState(true);
+  const [annError, setAnnError] = useState(null);
 
   // Menü öğeleri
   const menuItems = [
@@ -39,16 +43,16 @@ const HomePage = ({ navigation }) => {
 
   const showMoreButton = {
     icon: showMoreMenu ? '⬆️' : '➕',
-    label: showMoreMenu ? 'Daha az gör' : 'Hepsini gör',
+    label: showMoreMenu ? 'Daha Az Gör' : 'Hepsini Gör',
     slogan: showMoreMenu ? 'Kapat' : 'Tüm Hizmetler',
     isShowMore: true,
   };
 
   const moreMenuItems = [
     { icon: 'ℹ️', label: 'Hakkımızda', slogan: 'Kurumsal Bilgi' },
-    { icon: '📚', label: 'Branş derslerimiz', slogan: 'Zengin Eğitim' },
-    { icon: '📝', label: 'İş başvurusu', slogan: 'Kariyer Fırsatı' },
-    { icon: '🚌', label: 'Okul servisi', slogan: 'Güvenli Ulaşım' },
+    { icon: '📚', label: 'Branş Derslerimiz', slogan: 'Zengin Eğitim' },
+    { icon: '📝', label: 'İş Başvurusu', slogan: 'Kariyer Fırsatı' },
+    { icon: '🚌', label: 'Okul Servisi', slogan: 'Güvenli Ulaşım' },
   ];
 
   const slogans = [
@@ -99,22 +103,6 @@ const HomePage = ({ navigation }) => {
     });
   };
 
-  // Sabit duyurular verisi
-  const announcements = [
-    {
-      title: "Yaz Okulu Başlıyor!",
-      date: "23 Mayıs",
-      description: "Yaz okulu kayıtlarımız başlamıştır. Deta...",
-      image: require('../Assets/yazokulu.png'),
-    },
-    {
-      title: "Okul Gezisi Duyurusu",
-      date: "25 Mayıs",
-      description: "Öğrencilerimizle birlikte 5 Haziran'da d...",
-      image: require('../Assets/balonlar.jpg'),
-    },
-  ];
-
   useEffect(() => {
     const interval = setInterval(() => {
       const newIndex = (currentSloganIndex + 1) % slogans.length;
@@ -123,6 +111,13 @@ const HomePage = ({ navigation }) => {
 
     return () => clearInterval(interval);
   }, [currentSloganIndex]);
+
+  useEffect(() => {
+    DuyuruAPI.getAll()
+      .then(data => setAnnouncements(data))
+      .catch(() => setAnnError('Duyurular yüklenemedi'))
+      .finally(() => setAnnLoading(false));
+  }, []);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -192,11 +187,11 @@ const HomePage = ({ navigation }) => {
         navigation.navigate('Contact'); break;
       case 'Hakkımızda':
         navigation.navigate('About'); break;
-      case 'Branş derslerimiz':
+      case 'Branş Derslerimiz':
         navigation.navigate('BranchLessons'); break;
-      case 'İş başvurusu':
+      case 'İş Başvurusu':
         navigation.navigate('JobApplication'); break;
-      case 'Okul servisi':
+      case 'Okul Servisi':
         navigation.navigate('SchoolBus'); break;
       default:
         break;
@@ -312,16 +307,26 @@ const HomePage = ({ navigation }) => {
               <View style={styles.announcementTableHeader}>
                 <Text style={[styles.announcementHeaderCell, styles.announcementDateCell]}>Tarih</Text>
                 <Text style={[styles.announcementHeaderCell, styles.announcementTitleCell]}>Duyuru{"\n"}Başlığı</Text>
-                <Text style={[styles.announcementHeaderCell, styles.announcementDescCell]}>Kısa{"\n"}Açıklama</Text>
+                <Text style={[styles.announcementHeaderCell, styles.announcementDescCell]}>Açıklama</Text>
                 <Text style={[styles.announcementHeaderCell, styles.announcementImageHeaderCell]} numberOfLines={1} adjustsFontSizeToFit>Resim</Text>
               </View>
-              {announcements.map((announcement, index) => (
-                <View key={index} style={styles.announcementTableRow}>
-                  <Text style={[styles.announcementCell, styles.announcementDateCell]}>{announcement.date}</Text>
-                  <Text style={[styles.announcementCell, styles.announcementTitleCell]}>{announcement.title}</Text>
-                  <Text style={[styles.announcementCell, styles.announcementDescCell]}>{announcement.description}</Text>
+              {annLoading ? (
+                <View style={{padding:12}}><ActivityIndicator color="#790926" /><Text>Yükleniyor...</Text></View>
+              ) : annError ? (
+                <View style={{padding:12}}><Text style={{color:'red'}}>{annError}</Text></View>
+              ) : announcements.map((a, index) => (
+                <View key={a.id || index} style={styles.announcementTableRow}>
+                  <Text style={[styles.announcementCell, styles.announcementDateCell]}> {
+                    a.yayinTarihi
+                      ? (typeof a.yayinTarihi === 'string' ? new Date(a.yayinTarihi).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long' }) : a.yayinTarihi)
+                      : '-'
+                  } </Text>
+                  <Text style={[styles.announcementCell, styles.announcementTitleCell]}>{a.baslik || '-'}</Text>
+                  <Text style={[styles.announcementCell, styles.announcementDescCell]}>{a.icerik || '-'}</Text>
                   <View style={styles.announcementImageCell}>
-                    <Image source={announcement.image} style={{ width: 36, height: 36, resizeMode: 'contain', borderRadius: 6 }} />
+                    {a.resimUrl ? (
+                      <Image source={{ uri: a.resimUrl }} style={{ width: 36, height: 36, resizeMode: 'contain', borderRadius: 6 }} />
+                    ) : null}
                   </View>
                 </View>
               ))}

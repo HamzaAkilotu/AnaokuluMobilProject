@@ -29,7 +29,6 @@ const lessonData = [
   { name: 'Satranç' },
   { name: 'Drama' },
   { name: 'Jimnastik' },
-  { name: 'Robotik Kodlama' },
 ];
 
 const BranchLessonsScreen = () => {

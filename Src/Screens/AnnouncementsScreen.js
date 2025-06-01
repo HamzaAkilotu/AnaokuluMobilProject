@@ -1,42 +1,58 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { DuyuruAPI } from '../api';
 
-const announcements = [
-  {
-    date: '23 Mayıs',
-    title: 'Yaz Okulu Başlıyor!',
-    content: 'Yaz okulu kayıtlarımız başlamıştır. Deta...',
-    image: require('../Assets/yazokulu.png'),
-  },
-  {
-    date: '25 Mayıs',
-    title: 'Okul Gezisi Duyurusu',
-    content: "Öğrencilerimizle birlikte 5 Haziran'da d...",
-    image: require('../Assets/balonlar.jpg'),
-  },
-];
+const placeholderImage = require('../Assets/yazokulu.png');
 
-const AnnouncementsScreen = () => (
-  <ScrollView style={styles.container}>
-    <View style={styles.tableHeader}>
-      <Text style={[styles.headerCell, styles.dateCell]}>Tarih</Text>
-      <Text style={[styles.headerCell, styles.titleCell]}>Duyuru Başlığı</Text>
-      <Text style={[styles.headerCell, styles.contentCell]}>Kısa Açıklama</Text>
-      <Text style={[styles.headerCell, styles.imageCell]}>Resim</Text>
-    </View>
-    {announcements.map((a, idx) => (
-      <View key={idx} style={styles.tableRow}>
-        <Text style={[styles.cell, styles.dateCell]}>{a.date}</Text>
-        <Text style={[styles.cell, styles.titleCell]}>{a.title}</Text>
-        <Text style={[styles.cell, styles.contentCell]}>{a.content}</Text>
-        <View style={styles.imageCell}>
-          <Image source={a.image} style={{ width: 40, height: 40, resizeMode: 'contain' }} />
-        </View>
+const AnnouncementsScreen = () => {
+  const [announcements, setAnnouncements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    DuyuruAPI.getAll()
+      .then(data => setAnnouncements(data))
+      .catch(err => setError('Duyurular yüklenemedi'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <View style={styles.loading}><ActivityIndicator size="large" color="#790926" /><Text>Yükleniyor...</Text></View>;
+  }
+  if (error) {
+    return <View style={styles.loading}><Text style={{color:'red'}}>{error}</Text></View>;
+  }
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.tableHeader}>
+        <Text style={[styles.headerCell, styles.dateCell]}>Tarih</Text>
+        <Text style={[styles.headerCell, styles.titleCell]}>Duyuru Başlığı</Text>
+        <Text style={[styles.headerCell, styles.contentCell]}>Açıklama</Text>
+        <Text style={[styles.headerCell, styles.imageCell]}>Resim</Text>
       </View>
-    ))}
-    <Text style={styles.note}>_Okulumuzdaki güncel duyuruları burada bulabilirsiniz. Takipte kalın!_</Text>
-  </ScrollView>
-);
+      {announcements.map((a, idx) => (
+        <View key={a.id || idx} style={styles.tableRow}>
+          <Text style={[styles.cell, styles.dateCell]}> {
+            a.yayinTarihi
+              ? (typeof a.yayinTarihi === 'string' ? new Date(a.yayinTarihi).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' }) : a.yayinTarihi)
+              : '-'
+          } </Text>
+          <Text style={[styles.cell, styles.titleCell]}>{a.baslik || '-'}</Text>
+          <Text style={[styles.cell, styles.contentCell]}>{a.icerik || '-'}</Text>
+          <View style={styles.imageCell}>
+            {a.resimUrl ? (
+              <Image source={{ uri: a.resimUrl }} style={{ width: 40, height: 40, resizeMode: 'contain' }} />
+            ) : (
+              <Image source={placeholderImage} style={{ width: 40, height: 40, resizeMode: 'contain' }} />
+            )}
+          </View>
+        </View>
+      ))}
+      <Text style={styles.note}>Okulumuzdaki güncel duyuruları burada bulabilirsiniz. Takipte kalın!</Text>
+    </ScrollView>
+  );
+};
 
 const styles = StyleSheet.create({
   container: { padding: 16, backgroundColor: '#f7f5fb' },
@@ -71,6 +87,7 @@ const styles = StyleSheet.create({
   },
   cell: { fontSize: 13, color: '#333', textAlign: 'left', paddingHorizontal: 4, flexWrap: 'wrap' },
   note: { fontSize: 13, color: '#790926', marginTop: 10, fontStyle: 'italic', textAlign: 'center' },
+  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
 
 export default AnnouncementsScreen; 

@@ -1,40 +1,50 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { EtkinlikAPI } from '../api';
 
-const events = [
-  {
-    date: '23 Nisan',
-    name: '23 Nisan Kutlaması',
-    desc: 'Çocuklarımızla 23 Nisan coşkusu!',
-    location: 'Okul Bahçesi',
-  },
-  {
-    date: '15 Haziran',
-    name: 'Babalar Günü Kutlaması',
-    desc: "+Çocuklarımızla birlikte Babalar Günü'nü ...",
-    location: 'Okul Bahçesi',
-  },
-];
+const EventsScreen = () => {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-const EventsScreen = () => (
-  <ScrollView style={styles.container}>
-    <View style={styles.tableHeader}>
-      <Text style={[styles.headerCell, styles.dateCell]}>Tarih</Text>
-      <Text style={[styles.headerCell, styles.nameCell]}>Etkinlik Adı</Text>
-      <Text style={[styles.headerCell, styles.descCell]}>Açıklama</Text>
-      <Text style={[styles.headerCell, styles.locCell]}>Konum</Text>
-    </View>
-    {events.map((e, idx) => (
-      <View key={idx} style={styles.tableRow}>
-        <Text style={[styles.cell, styles.dateCell]}>{e.date}</Text>
-        <Text style={[styles.cell, styles.nameCell]}>{e.name}</Text>
-        <Text style={[styles.cell, styles.descCell]}>{e.desc}</Text>
-        <Text style={[styles.cell, styles.locCell]}>{e.location}</Text>
+  useEffect(() => {
+    EtkinlikAPI.getAll()
+      .then(data => setEvents(data))
+      .catch(err => setError('Etkinlikler yüklenemedi'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <View style={styles.loading}><ActivityIndicator size="large" color="#790926" /><Text>Yükleniyor...</Text></View>;
+  }
+  if (error) {
+    return <View style={styles.loading}><Text style={{color:'red'}}>{error}</Text></View>;
+  }
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.tableHeader}>
+        <Text style={[styles.headerCell, styles.dateCell]}>Tarih</Text>
+        <Text style={[styles.headerCell, styles.nameCell]}>Etkinlik Adı</Text>
+        <Text style={[styles.headerCell, styles.descCell]}>Açıklama</Text>
+        <Text style={[styles.headerCell, styles.locCell]}>Konum</Text>
       </View>
-    ))}
-    <Text style={styles.note}>_Yaklaşan etkinliklerimizi kaçırmayın!_</Text>
-  </ScrollView>
-);
+      {events.map((e, idx) => (
+        <View key={e.id || idx} style={styles.tableRow}>
+          <Text style={[styles.cell, styles.dateCell]}> {
+            e.tarih
+              ? (typeof e.tarih === 'string' ? new Date(e.tarih).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long' }) : e.tarih)
+              : '-'
+          } </Text>
+          <Text style={[styles.cell, styles.nameCell]}>{e.baslik || '-'}</Text>
+          <Text style={[styles.cell, styles.descCell]}>{e.aciklama || '-'}</Text>
+          <Text style={[styles.cell, styles.locCell]}>{e.konum || '-'}</Text>
+        </View>
+      ))}
+      <Text style={styles.note}>Yaklaşan etkinliklerimizi kaçırmayın!</Text>
+    </ScrollView>
+  );
+};
 
 const styles = StyleSheet.create({
   container: { padding: 16, backgroundColor: '#f7f5fb' },
@@ -69,6 +79,11 @@ const styles = StyleSheet.create({
   },
   cell: { fontSize: 13, color: '#333', textAlign: 'left', paddingHorizontal: 4, flexWrap: 'wrap' },
   note: { fontSize: 13, color: '#790926', marginTop: 10, fontStyle: 'italic', textAlign: 'center' },
+  loading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 export default EventsScreen; 
